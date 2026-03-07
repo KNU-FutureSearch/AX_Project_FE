@@ -1,0 +1,57 @@
+import React, { useEffect, useRef } from 'react';
+import { createChart, ColorType, CandlestickSeries } from 'lightweight-charts';
+
+const CHART_CONFIG = { // 차트판 설정
+  width: 600,
+  height: 400,
+  layout: {
+    background: { type: ColorType.Solid, color: '#ffffff' },
+    textColor: '#333',
+  },
+  grid: {
+    vertLines: { color: '#f0f3fa' },
+    horzLines: { color: '#f0f3fa' },
+  },
+} as const;
+
+const SERIES_CONFIG = { // 캔들스틱 시리즈 설정
+  upColor: '#ef5350',
+  downColor: '#26a69a',
+  borderVisible: false,
+  wickUpColor: '#ef5350',
+  wickDownColor: '#26a69a',
+} as const;
+
+const MOCK_DATA = [ // 목업 데이터
+  { time: '2026-03-01', open: 100, high: 110, low: 90, close: 105 },
+  { time: '2026-03-02', open: 105, high: 120, low: 100, close: 115 },
+  { time: '2026-03-03', open: 115, high: 125, low: 110, close: 112 },
+  { time: '2026-03-04', open: 112, high: 115, low: 95, close: 98 },
+  { time: '2026-03-05', open: 98, high: 105, low: 90, close: 102 },
+] as const;
+
+const StockChart: React.FC = () => {
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!chartContainerRef.current) return;
+
+    const chart = createChart(chartContainerRef.current, CHART_CONFIG);
+    const candlestickSeries = chart.addSeries(CandlestickSeries, SERIES_CONFIG);
+    candlestickSeries.setData(MOCK_DATA as any);
+
+    return () => {
+      chart.remove();
+    };
+  }, []);
+
+  return <div ref={chartContainerRef} />;
+};
+
+export default StockChart;
+
+/* 
+웹 소켓을 이용해서 받아와야함. 기존의 REST 방식으로는 불가능함
+또는 SSE 방식을 택해야하는데 이부분도 공부를 해보면 좋을 것 같음.
+한번 이부분은 조금 더 이야기를 나눠봐야할 것 같고 추가적인 공부가 필요한 부분
+ */
