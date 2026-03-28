@@ -1,4 +1,5 @@
 import React from 'react';
+import StockChart from './StockChart';
 
 // MainBoard 컴포넌트가 부모로부터 받을 데이터(Props)의 타입을 정의
 interface MainBoardProps {
@@ -20,8 +21,8 @@ export default function MainBoard({ stockName, changeRate }: MainBoardProps) {
           <div className="title-pill percent">{changeRate}</div>
         </div>
         
-        <div className="content-area">
-          <p>chart area</p>
+        <div className="content-area" style={{ padding: 0, overflow: 'hidden' }}>
+          <StockChart />
         </div>
       </section>
 
