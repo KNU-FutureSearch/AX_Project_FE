@@ -1,10 +1,11 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import './index.css'
-import App from './App.tsx'
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App';
+import './App.css'; // 전역 CSS(토스 스타일) 불러오기
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
+// id가 'root'인 HTML 요소에 React 앱을 렌더링합니다.
+ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
+  <React.StrictMode>
     <App />
-  </StrictMode>,
-)
+  </React.StrictMode>
+);
