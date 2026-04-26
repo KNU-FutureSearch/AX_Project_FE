@@ -49,7 +49,7 @@ const StockChart: React.FC = () => {
     // 1. 초기 데이터 로드 (REST API)
     const fetchInitialData = async () => {
       try {
-        const response = await fetch(`http://localhost:8080/api/stock/${targetStock}`);
+        const response = await fetch(`http://13.209.15.204:8080/api/stock/005930`);
         if (response.ok) {
           const data = await response.json();
           
@@ -78,10 +78,10 @@ const StockChart: React.FC = () => {
     // 3. 웹소켓 연결 로직 (함수로 분리)
     const connectWebSocket = () => {
       client = new Client({
-        brokerURL: 'ws://localhost:8080/ws-stock', // 실제 배포 환경에 맞춰 도메인 변경 필요
+        brokerURL: 'ws://13.209.15.204:8080/ws-stock', // 실제 배포 환경에 맞춰 도메인 변경 필요
         onConnect: () => {
           console.log('STOMP 연결 성공');
-          client?.subscribe(`/topic/stock/${targetStock}`, (message) => {
+          client?.subscribe(`/topic/stock/005930`, (message) => {
             const data = JSON.parse(message.body);
             const candle = {
               time: data.time,
@@ -91,13 +91,13 @@ const StockChart: React.FC = () => {
               close: data.close,
             };
             // update는 새로운 데이터를 추가하거나 마지막 캔들을 갱신할 때 사용합니다.
-            candlestickSeries.update(candle as any);
-          });
-        },
-        onDisconnect: () => console.log('STOMP 연결 종료'),
-        onStompError: (frame) => console.error('STOMP 에러:', frame),
-      });
-      client.activate();
+          candlestickSeries.update(candle as any);
+        });
+      },
+      onDisconnect: () => console.log('STOMP 연결 종료'),
+      onStompError: (frame) => console.error('STOMP 에러:', frame),
+    });
+    client.activate();
     };
 
     // 로직 실행 (fetch -> 완료 시 connectWebSocket 실행)
