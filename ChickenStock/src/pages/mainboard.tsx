@@ -17,22 +17,18 @@ export default function MainBoard({ stockName, changeRate }: MainBoardProps) {
   const handleGenerateReport = async () => {
     setIsAnalyzing(true);
     try {
-      // API 연결 전, 1.5초 대기 후 Mock Data 반환
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const response = await fetch(`http://13.209.15.204:8080/api/analysis/${targetStock}`);
+
+      if(!response.ok){
+        throw new Error('서버에서 데이터를 가져오지 못했습니다.');
+      }
+
+      const data = await response.json();
       
-      const MOCK_REPORT_DATA = {
-        recommendation: "매수", // 매수, 매도, 관망 등
-        factors: [
-          { id: 1, label: "기술적 분석", score: -3 },
-          { id: 2, label: "기본적 분석", score: 8 },
-          { id: 3, label: "거시 경제", score: -1 },
-          { id: 4, label: "시장 심리", score: 6 }
-        ]
-      };
-      
-      setAnalysisData(MOCK_REPORT_DATA);
+      setAnalysisData(data);
     } catch (error) {
       console.error("AI 리포트 생성 실패:", error);
+      alert("AI 분석 리포트를 불러오는데 실패했습니다.");
     } finally {
       setIsAnalyzing(false);
     }
