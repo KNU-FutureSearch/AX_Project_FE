@@ -50,7 +50,7 @@ export default function MainBoard({ stockName, changeRate }: MainBoardProps) {
         </div>
         
         <div className="content-area" style={{ padding: 0, overflow: 'hidden' }}>
-          <StockChart />
+          <StockChart targetStock={targetStock} />
         </div>
       </section>
 

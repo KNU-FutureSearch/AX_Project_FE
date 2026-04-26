@@ -22,7 +22,11 @@ const SERIES_CONFIG = {
   wickDownColor: '#26a69a',
 } as const;
 
-const StockChart: React.FC = () => {
+interface StockChartProps{
+  targetStock: string;
+}
+
+const StockChart: React.FC<StockChartProps> = ({targetStock}) => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -108,7 +112,7 @@ const StockChart: React.FC = () => {
       if (client)client.deactivate();
       chart.remove();
     };
-  }, []);
+  }, [targetStock]);
 
   return <div ref={chartContainerRef} style={{ width: '100%', minHeight: '400px' }} />;
 };
