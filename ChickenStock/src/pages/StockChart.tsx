@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { createChart, ColorType, CandlestickSeries } from 'lightweight-charts';
+import { createChart, ColorType, CandlestickSeries, type Time } from 'lightweight-charts';
 import { Client } from '@stomp/stompjs';
 
 const CHART_CONFIG = {
@@ -22,11 +22,11 @@ const SERIES_CONFIG = {
   wickDownColor: '#26a69a',
 } as const;
 
-interface StockChartProps{
+interface StockChartProps {
   targetStock: string;
 }
 
-const StockChart: React.FC<StockChartProps> = ({targetStock}) => {
+const StockChart: React.FC<StockChartProps> = ({ targetStock }) => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -38,7 +38,6 @@ const StockChart: React.FC<StockChartProps> = ({targetStock}) => {
       width: container.clientWidth || 600,
     });
     const candlestickSeries = chart.addSeries(CandlestickSeries, SERIES_CONFIG);
-    candlestickSeries.setData([]);
 
     const resizeObserver = new ResizeObserver(([entry]) => {
       if (entry.contentRect.width > 0) {
@@ -47,10 +46,18 @@ const StockChart: React.FC<StockChartProps> = ({targetStock}) => {
     });
     resizeObserver.observe(container);
 
-   // 웹소켓 클라이언트 변수를 상단에 선언하여 클린업 함수에서 접근할 수 있도록 함
     let client: Client | null = null;
 
-    // 1. 초기 데이터 로드 (REST API)
+    // 타임스탬프를 1분 단위(혹은 원하는 단위)로 정규화하는 헬퍼 함수
+    const getRoundedTime = (rawTime: number) => {
+      // 1. 백엔드 time이 밀리초(ms)라면 초(s) 단위로 변경 (lightweight-charts는 초 단위를 사용합니다)
+      // 만약 백엔드가 이미 초 단위로 보낸다면 / 1000 은 빼주세요.
+      const timeInSeconds = Math.floor(rawTime / 1000); 
+      
+      // 2. 1분(60초) 단위로 내림하여 동일한 분 내에서는 같은 time 값을 가지게 함
+      return (timeInSeconds - (timeInSeconds % 60)) as Time;
+    };
+
     const fetchInitialData = async () => {
       try {
         // targetStock 동적 바인딩 및 환경변수 URL 사용
@@ -59,7 +66,7 @@ const StockChart: React.FC<StockChartProps> = ({targetStock}) => {
           const data = await response.json();
           
           const initialCandle = {
-            time: data.time,
+            time: getRoundedTime(data.time),
             open: data.open,
             high: data.high,
             low: data.low,
@@ -75,7 +82,6 @@ const StockChart: React.FC<StockChartProps> = ({targetStock}) => {
       }
     };
 
-    // 3. 웹소켓 연결 로직 (함수로 분리)
     const connectWebSocket = () => {
       client = new Client({
         brokerURL: import.meta.env.VITE_WS_BASE_URL,
@@ -84,8 +90,9 @@ const StockChart: React.FC<StockChartProps> = ({targetStock}) => {
           // targetStock 동적 바인딩
           client?.subscribe(`/topic/stock/${targetStock}`, (message) => {
             const data = JSON.parse(message.body);
+            
             const candle = {
-              time: data.time,
+              time: getRoundedTime(data.time), // 1분 단위로 고정된 시간값
               open: data.open,
               high: data.high,
               low: data.low,
@@ -100,12 +107,11 @@ const StockChart: React.FC<StockChartProps> = ({targetStock}) => {
       client.activate();
     };
 
-    // 로직 실행 (fetch -> 완료 시 connectWebSocket 실행)
     fetchInitialData();
 
     return () => {
       resizeObserver.disconnect();
-      if (client)client.deactivate();
+      if (client) client.deactivate();
       chart.remove();
     };
   }, [targetStock]);
