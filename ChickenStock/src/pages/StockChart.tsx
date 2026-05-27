@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { createChart, ColorType, CandlestickSeries } from 'lightweight-charts';
+import { createChart, ColorType, CandlestickSeries, type Time } from 'lightweight-charts';
 import { Client } from '@stomp/stompjs';
 
 const CHART_CONFIG = {
@@ -22,11 +22,11 @@ const SERIES_CONFIG = {
   wickDownColor: '#26a69a',
 } as const;
 
-interface StockChartProps{
+interface StockChartProps {
   targetStock: string;
 }
 
-const StockChart: React.FC<StockChartProps> = ({targetStock}) => {
+const StockChart: React.FC<StockChartProps> = ({ targetStock }) => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -38,7 +38,6 @@ const StockChart: React.FC<StockChartProps> = ({targetStock}) => {
       width: container.clientWidth || 600,
     });
     const candlestickSeries = chart.addSeries(CandlestickSeries, SERIES_CONFIG);
-    candlestickSeries.setData([]);
 
     const resizeObserver = new ResizeObserver(([entry]) => {
       if (entry.contentRect.width > 0) {
@@ -47,69 +46,74 @@ const StockChart: React.FC<StockChartProps> = ({targetStock}) => {
     });
     resizeObserver.observe(container);
 
-   // 웹소켓 클라이언트 변수를 상단에 선언하여 클린업 함수에서 접근할 수 있도록 함
     let client: Client | null = null;
 
-    // 1. 초기 데이터 로드 (REST API)
+    // 타임스탬프를 1분 단위(혹은 원하는 단위)로 정규화하는 헬퍼 함수
+    const getRoundedTime = (rawTime: number) => {
+      // 1. 백엔드 time이 밀리초(ms)라면 초(s) 단위로 변경 (lightweight-charts는 초 단위를 사용합니다)
+      // 만약 백엔드가 이미 초 단위로 보낸다면 / 1000 은 빼주세요.
+      const timeInSeconds = Math.floor(rawTime / 1000); 
+      
+      // 2. 1분(60초) 단위로 내림하여 동일한 분 내에서는 같은 time 값을 가지게 함
+      return (timeInSeconds - (timeInSeconds % 60)) as Time;
+    };
+
     const fetchInitialData = async () => {
       try {
-        const response = await fetch(`http://13.209.15.204:8080/api/stock/005930`);
+        // 하드코딩된 005930 대신 props로 받은 targetStock 사용
+        const response = await fetch(`http://13.209.15.204:8080/api/stock/${targetStock}`);
         if (response.ok) {
           const data = await response.json();
           
-          // 백엔드 데이터(단건)를 lightweight-charts 형식으로 변환
           const initialCandle = {
-            time: data.time,
+            time: getRoundedTime(data.time),
             open: data.open,
             high: data.high,
             low: data.low,
             close: data.close,
           };
           
-          // setData는 초기 렌더링용이며 배열 형태를 받습니다.
-          // 백엔드에서 배열로 과거 데이터를 준다면 map을 돌려 통째로 넣고, 
-          // 현재가 단건만 준다면 이렇게 배열로 감싸서 넣어줍니다.
-          candlestickSeries.setData([initialCandle] as any);
+          candlestickSeries.setData([initialCandle]);
         }
       } catch (error) {
         console.error('초기 데이터 로딩 실패:', error);
       } finally {
-        // 2. 초기 세팅이 끝나면(성공/실패 무관) STOMP 웹소켓 연결 시작
         connectWebSocket();
       }
     };
 
-    // 3. 웹소켓 연결 로직 (함수로 분리)
     const connectWebSocket = () => {
       client = new Client({
-        brokerURL: 'ws://13.209.15.204:8080/ws-stock', // 실제 배포 환경에 맞춰 도메인 변경 필요
+        brokerURL: 'ws://13.209.15.204:8080/ws-stock',
         onConnect: () => {
           console.log('STOMP 연결 성공');
-          client?.subscribe(`/topic/stock/005930`, (message) => {
+          // 여기도 props로 받은 targetStock 사용
+          client?.subscribe(`/topic/stock/${targetStock}`, (message) => {
             const data = JSON.parse(message.body);
+            
             const candle = {
-              time: data.time,
+              time: getRoundedTime(data.time), // 1분 단위로 고정된 시간값
               open: data.open,
               high: data.high,
               low: data.low,
               close: data.close,
             };
-            // update는 새로운 데이터를 추가하거나 마지막 캔들을 갱신할 때 사용합니다.
-          candlestickSeries.update(candle as any);
-        });
-      },
-      onDisconnect: () => console.log('STOMP 연결 종료'),
-      onStompError: (frame) => console.error('STOMP 에러:', frame),
-    });
-    client.activate();
+            
+            // 동일한 time 값이 들어오면 기존 캔들의 종가/고가/저가가 실시간으로 갱신됩니다.
+            candlestickSeries.update(candle);
+          });
+        },
+        onDisconnect: () => console.log('STOMP 연결 종료'),
+        onStompError: (frame) => console.error('STOMP 에러:', frame),
+      });
+      client.activate();
     };
 
-    // 로직 실행 (fetch -> 완료 시 connectWebSocket 실행)
     fetchInitialData();
 
     return () => {
       resizeObserver.disconnect();
-      if (client)client.deactivate();
+      if (client) client.deactivate();
       chart.remove();
     };
   }, [targetStock]);

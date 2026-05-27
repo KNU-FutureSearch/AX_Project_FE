@@ -3,6 +3,8 @@ import React from 'react';
 // Header 컴포넌트가 부모로부터 받을 Props의 타입을 정의합니다.
 // onOpenLogin은 매개변수와 반환값이 없는 함수 형태임을 명시합니다.
 interface HeaderProps {
+  isLoggedIn: boolean;
+  onLogout: () => void;
   onOpenLogin: () => void;
   onOpenMyPage: () => void;
 }
