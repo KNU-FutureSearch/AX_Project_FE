@@ -2,6 +2,16 @@ import React, { useState } from 'react';
 import StockChart from './StockChart';
 import AIReport from './AIReport';
 
+// 백엔드(StockAnalysis.java)가 내려주는 실제 데이터 스펙에 맞춤
+export interface AnalysisResponse {
+  ticker: string;
+  stock: string;
+  analysis_date: string;
+  label: string; // 예: "매수", "매도", "중립"
+  total_score: number;
+  axis_scores: Record<string, number>;
+}
+
 // MainBoard 컴포넌트가 부모로부터 받을 데이터(Props)의 타입을 정의
 interface MainBoardProps {
   stockName: string;   // 종목명 (예: "삼성전자", "Apple Inc.")
@@ -17,14 +27,10 @@ export default function MainBoard({ stockName, changeRate }: MainBoardProps) {
   const handleGenerateReport = async () => {
     setIsAnalyzing(true);
     try {
-      const response = await fetch(`http://13.209.15.204:8080/api/analysis/${targetStock}`);
-
-      if(!response.ok){
-        throw new Error('서버에서 데이터를 가져오지 못했습니다.');
-      }
-
+      // 하드코딩 제거
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/analysis/${targetStock}`);
+      if(!response.ok) throw new Error('서버에서 데이터를 가져오지 못했습니다.');
       const data = await response.json();
-      
       setAnalysisData(data);
     } catch (error) {
       console.error("AI 리포트 생성 실패:", error);

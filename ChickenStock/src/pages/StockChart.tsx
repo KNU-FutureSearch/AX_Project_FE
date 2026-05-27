@@ -60,8 +60,8 @@ const StockChart: React.FC<StockChartProps> = ({ targetStock }) => {
 
     const fetchInitialData = async () => {
       try {
-        // 하드코딩된 005930 대신 props로 받은 targetStock 사용
-        const response = await fetch(`http://13.209.15.204:8080/api/stock/${targetStock}`);
+        // targetStock 동적 바인딩 및 환경변수 URL 사용
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/stock/${targetStock}`);
         if (response.ok) {
           const data = await response.json();
           
@@ -73,7 +73,7 @@ const StockChart: React.FC<StockChartProps> = ({ targetStock }) => {
             close: data.close,
           };
           
-          candlestickSeries.setData([initialCandle]);
+          candlestickSeries.setData([initialCandle] as any);
         }
       } catch (error) {
         console.error('초기 데이터 로딩 실패:', error);
@@ -84,10 +84,10 @@ const StockChart: React.FC<StockChartProps> = ({ targetStock }) => {
 
     const connectWebSocket = () => {
       client = new Client({
-        brokerURL: 'ws://13.209.15.204:8080/ws-stock',
+        brokerURL: import.meta.env.VITE_WS_BASE_URL,
         onConnect: () => {
           console.log('STOMP 연결 성공');
-          // 여기도 props로 받은 targetStock 사용
+          // targetStock 동적 바인딩
           client?.subscribe(`/topic/stock/${targetStock}`, (message) => {
             const data = JSON.parse(message.body);
             
@@ -98,9 +98,7 @@ const StockChart: React.FC<StockChartProps> = ({ targetStock }) => {
               low: data.low,
               close: data.close,
             };
-            
-            // 동일한 time 값이 들어오면 기존 캔들의 종가/고가/저가가 실시간으로 갱신됩니다.
-            candlestickSeries.update(candle);
+            candlestickSeries.update(candle as any);
           });
         },
         onDisconnect: () => console.log('STOMP 연결 종료'),
