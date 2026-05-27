@@ -11,11 +11,7 @@
   },
   "dependencies": {
     "@stomp/stompjs": "^7.3.0",
-<<<<<<< HEAD
     "axios": "^1.16.1",
-=======
-    "axios": "^1.15.2",
->>>>>>> 95ba919a38fa8eca654ddbfc541aa044c0b62a19
     "lightweight-charts": "^5.1.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",

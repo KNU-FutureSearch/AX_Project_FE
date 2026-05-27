@@ -13,13 +13,7 @@ const SERIES_CONFIG = {
   wickUpColor: '#ef5350', wickDownColor: '#26a69a',
 } as const;
 
-<<<<<<< HEAD
 interface StockChartProps { targetStock: string; }
-=======
-interface StockChartProps {
-  targetStock: string;
-}
->>>>>>> 95ba919a38fa8eca654ddbfc541aa044c0b62a19
 
 const StockChart: React.FC<StockChartProps> = ({ targetStock }) => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
@@ -37,20 +31,9 @@ const StockChart: React.FC<StockChartProps> = ({ targetStock }) => {
 
     let client: Client | null = null;
 
-<<<<<<< HEAD
     // 💡 1. 밀리초(/1000) 나누기 제거 (백엔드가 이미 초 단위로 전송함)
     const getRoundedTime = (rawTime: number) => {
       return (rawTime - (rawTime % 60)) as Time;
-=======
-    // 타임스탬프를 1분 단위(혹은 원하는 단위)로 정규화하는 헬퍼 함수
-    const getRoundedTime = (rawTime: number) => {
-      // 1. 백엔드 time이 밀리초(ms)라면 초(s) 단위로 변경 (lightweight-charts는 초 단위를 사용합니다)
-      // 만약 백엔드가 이미 초 단위로 보낸다면 / 1000 은 빼주세요.
-      const timeInSeconds = Math.floor(rawTime / 1000); 
-      
-      // 2. 1분(60초) 단위로 내림하여 동일한 분 내에서는 같은 time 값을 가지게 함
-      return (timeInSeconds - (timeInSeconds % 60)) as Time;
->>>>>>> 95ba919a38fa8eca654ddbfc541aa044c0b62a19
     };
 
     const fetchInitialData = async () => {
@@ -59,23 +42,10 @@ const StockChart: React.FC<StockChartProps> = ({ targetStock }) => {
         const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/stock/${targetStock}`);
         if (response.ok) {
           const data = await response.json();
-<<<<<<< HEAD
           candlestickSeries.setData([{
             time: getRoundedTime(data.time),
             open: data.open, high: data.high, low: data.low, close: data.close,
           }]);
-=======
-          
-          const initialCandle = {
-            time: getRoundedTime(data.time),
-            open: data.open,
-            high: data.high,
-            low: data.low,
-            close: data.close,
-          };
-          
-          candlestickSeries.setData([initialCandle] as any);
->>>>>>> 95ba919a38fa8eca654ddbfc541aa044c0b62a19
         }
       } catch (error) {
         console.error('초기 데이터 로딩 실패:', error);
@@ -91,22 +61,10 @@ const StockChart: React.FC<StockChartProps> = ({ targetStock }) => {
         onConnect: () => {
           client?.subscribe(`/topic/stock/${targetStock}`, (message) => {
             const data = JSON.parse(message.body);
-<<<<<<< HEAD
             candlestickSeries.update({
               time: getRoundedTime(data.time),
               open: data.open, high: data.high, low: data.low, close: data.close,
             });
-=======
-            
-            const candle = {
-              time: getRoundedTime(data.time), // 1분 단위로 고정된 시간값
-              open: data.open,
-              high: data.high,
-              low: data.low,
-              close: data.close,
-            };
-            candlestickSeries.update(candle as any);
->>>>>>> 95ba919a38fa8eca654ddbfc541aa044c0b62a19
           });
         }
       });
