@@ -53,11 +53,11 @@ const StockChart: React.FC<StockChartProps> = ({targetStock}) => {
     // 1. 초기 데이터 로드 (REST API)
     const fetchInitialData = async () => {
       try {
-        const response = await fetch(`http://13.209.15.204:8080/api/stock/005930`);
+        // targetStock 동적 바인딩 및 환경변수 URL 사용
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/stock/${targetStock}`);
         if (response.ok) {
           const data = await response.json();
           
-          // 백엔드 데이터(단건)를 lightweight-charts 형식으로 변환
           const initialCandle = {
             time: data.time,
             open: data.open,
@@ -66,15 +66,11 @@ const StockChart: React.FC<StockChartProps> = ({targetStock}) => {
             close: data.close,
           };
           
-          // setData는 초기 렌더링용이며 배열 형태를 받습니다.
-          // 백엔드에서 배열로 과거 데이터를 준다면 map을 돌려 통째로 넣고, 
-          // 현재가 단건만 준다면 이렇게 배열로 감싸서 넣어줍니다.
           candlestickSeries.setData([initialCandle] as any);
         }
       } catch (error) {
         console.error('초기 데이터 로딩 실패:', error);
       } finally {
-        // 2. 초기 세팅이 끝나면(성공/실패 무관) STOMP 웹소켓 연결 시작
         connectWebSocket();
       }
     };
@@ -82,10 +78,11 @@ const StockChart: React.FC<StockChartProps> = ({targetStock}) => {
     // 3. 웹소켓 연결 로직 (함수로 분리)
     const connectWebSocket = () => {
       client = new Client({
-        brokerURL: 'ws://13.209.15.204:8080/ws-stock', // 실제 배포 환경에 맞춰 도메인 변경 필요
+        brokerURL: import.meta.env.VITE_WS_BASE_URL,
         onConnect: () => {
           console.log('STOMP 연결 성공');
-          client?.subscribe(`/topic/stock/005930`, (message) => {
+          // targetStock 동적 바인딩
+          client?.subscribe(`/topic/stock/${targetStock}`, (message) => {
             const data = JSON.parse(message.body);
             const candle = {
               time: data.time,
@@ -94,14 +91,13 @@ const StockChart: React.FC<StockChartProps> = ({targetStock}) => {
               low: data.low,
               close: data.close,
             };
-            // update는 새로운 데이터를 추가하거나 마지막 캔들을 갱신할 때 사용합니다.
-          candlestickSeries.update(candle as any);
-        });
-      },
-      onDisconnect: () => console.log('STOMP 연결 종료'),
-      onStompError: (frame) => console.error('STOMP 에러:', frame),
-    });
-    client.activate();
+            candlestickSeries.update(candle as any);
+          });
+        },
+        onDisconnect: () => console.log('STOMP 연결 종료'),
+        onStompError: (frame) => console.error('STOMP 에러:', frame),
+      });
+      client.activate();
     };
 
     // 로직 실행 (fetch -> 완료 시 connectWebSocket 실행)
